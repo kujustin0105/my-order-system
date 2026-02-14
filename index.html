@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>線上點餐系統</title>
     <style>
-        /* 1. 放大全域字體 */
+        /* 1. 內容字體維持大字體 */
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 120px; font-size: 18px; }
         
         .header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .table-info { padding: 15px; background: #28a745; color: white; font-weight: bold; font-size: 20px; text-align: center; }
+        .table-info { padding: 12px; background: #28a745; color: white; font-weight: bold; font-size: 18px; text-align: center; }
         
-        /* 分類按鈕字體放大 */
+        /* 2. 分類標題回復成原來的大小 (15px) */
         .category-container { display: grid; grid-template-columns: repeat(4, 1fr); background: #0093c4; }
-        .cat-tab { padding: 15px 5px; color: white; text-align: center; font-size: 18px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.2); }
+        .cat-tab { padding: 12px 5px; color: white; text-align: center; font-size: 15px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
         .cat-tab.active { background: #8bc34a; font-weight: bold; }
 
-        /* 菜單卡片字體與間距放大 */
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        /* 菜單卡片維持大字體 */
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
         .menu-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .item-name { color: #0076a3; font-weight: bold; font-size: 22px; margin-bottom: 8px; }
         .item-price { color: #f57c00; font-weight: bold; font-size: 20px; }
@@ -27,21 +27,21 @@
         .btn-qty { width: 45px; height: 45px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 24px; font-weight: bold; }
         .qty-val { margin: 0 15px; font-weight: bold; color: #333; font-size: 22px; }
 
-        /* 底部欄位高度增加 */
+        /* 底部欄位 */
         .footer { position: fixed; bottom: 0; width: 100%; background: #fff; padding: 20px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
         #order-btn { background: #28a745; color: white; border: none; padding: 15px 35px; border-radius: 8px; font-size: 22px; font-weight: bold; cursor: pointer; }
         #order-btn:disabled { background: #ccc; }
         
         /* 已點餐提示遮罩 */
-        #ordered-mask { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; z-index: 999; text-align: center; padding-top: 100px; font-size: 24px; font-weight: bold; }
+        #ordered-mask { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; z-index: 999; text-align: center; padding-top: 150px; }
     </style>
 </head>
 <body>
-<button onclick="localStorage.clear(); location.reload();" style="position:fixed; top:0; right:0; z-index:1000; padding:10px; background:red; color:white;">老闆點我：清除限制</button>
 
 <div id="ordered-mask">
-    <p>📝 訂單已送出成功！</p>
-    <p style="font-size: 18px; font-weight: normal;">如需加點，請聯絡工作人員。</p>
+    <div style="font-size: 30px; margin-bottom: 20px;">📝 訂單已送出成功！</div>
+    <div style="font-size: 20px; color: #ccc;">若需加點請洽服務人員</div>
+    <button onclick="localStorage.removeItem('hasOrdered'); location.reload();" style="margin-top: 50px; background: none; border: 1px solid #555; color: #555; padding: 5px 10px;">(老闆測試用：清除限制)</button>
 </div>
 
 <div class="header">
@@ -66,7 +66,7 @@
     const table = new URLSearchParams(window.location.search).get('table') || "現場";
 
     window.onload = () => {
-        // 2. 檢查是否已經點過餐
+        // 檢查是否點過餐
         if (localStorage.getItem('hasOrdered') === 'true') {
             document.getElementById('ordered-mask').style.display = 'block';
             return;
@@ -81,6 +81,10 @@
                 activeCat = cats[0];
                 renderTabs(cats);
                 renderMenu();
+            })
+            .catch(err => {
+                // 如果讀不到菜單，通常是 GAS 網址或權限問題
+                document.getElementById('menu-display').innerHTML = '<div style="grid-column: span 2; color: red; text-align:center; padding: 20px;">無法讀取菜單，請檢查 GAS 部署權限是否設為「所有人」。</div>';
             });
     };
 
@@ -134,7 +138,7 @@
     }
 
     function submitOrder() {
-        if (!confirm("確定要送出訂單嗎？送出後將無法自行修改內容。")) return;
+        if (!confirm("確定要送出訂單嗎？送出後不可修改。")) return;
 
         const btn = document.getElementById('order-btn');
         btn.disabled = true;
@@ -149,10 +153,14 @@
             body: JSON.stringify({ table, items, total: document.getElementById('total-price').innerText })
         })
         .then(() => {
-            // 3. 標記為已點餐
             localStorage.setItem('hasOrdered', 'true');
             alert("訂單已送出！");
-            location.reload(); // 重新整理會觸發 onload 的檢查
+            location.reload();
+        })
+        .catch(err => {
+            alert("送出失敗，請檢查網路或 GAS 權限。");
+            btn.disabled = false;
+            btn.innerText = "送出訂單";
         });
     }
 </script>
