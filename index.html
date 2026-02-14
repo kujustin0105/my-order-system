@@ -3,90 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>線上點餐系統</title>
+    <title>點餐系統</title>
     <style>
-        /* 1. 內容字體維持大字體 */
         body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 120px; font-size: 18px; }
         
+        /* 姓名輸入頁面 */
+        #name-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        #name-input { width: 85%; padding: 15px; font-size: 24px; border: 2px solid #ddd; border-radius: 12px; margin-bottom: 30px; text-align: center; }
+        .btn-start { width: 85%; padding: 18px; background: #28a745; color: white; border: none; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; }
+
+        /* 頂部樣式 */
         .header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .table-info { padding: 12px; background: #28a745; color: white; font-weight: bold; font-size: 18px; text-align: center; }
-        
-        /* 2. 分類標題回復成原來的大小 (15px) */
         .category-container { display: grid; grid-template-columns: repeat(4, 1fr); background: #0093c4; }
-        .cat-tab { padding: 12px 5px; color: white; text-align: center; font-size: 15px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
+        .cat-tab { padding: 12px 5px; color: white; text-align: center; font-size: 15px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.1); min-height: 50px; display: flex; align-items: center; justify-content: center; }
         .cat-tab.active { background: #8bc34a; font-weight: bold; }
 
-        /* 菜單卡片維持大字體 */
+        /* 菜單卡片 (大字體) */
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
         .menu-card { background: white; border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .item-name { color: #0076a3; font-weight: bold; font-size: 22px; margin-bottom: 8px; }
         .item-price { color: #f57c00; font-weight: bold; font-size: 20px; }
         
-        /* 控制按鈕加大 */
-        .controls { display: flex; align-items: center; justify-content: flex-end; margin-top: 15px; }
-        .btn-qty { width: 45px; height: 45px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 24px; font-weight: bold; }
-        .qty-val { margin: 0 15px; font-weight: bold; color: #333; font-size: 22px; }
+        /* 數量按鈕加大 */
+        .btn-qty { width: 45px; height: 45px; border: 1px solid #ddd; background: #fff; border-radius: 6px; font-size: 24px; font-weight: bold; cursor: pointer; }
 
         /* 底部欄位 */
-        .footer { position: fixed; bottom: 0; width: 100%; background: #fff; padding: 20px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
-        #order-btn { background: #28a745; color: white; border: none; padding: 15px 35px; border-radius: 8px; font-size: 22px; font-weight: bold; cursor: pointer; }
+        .footer { position: fixed; bottom: 0; width: 100%; background: #fff; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; z-index: 200; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        #order-btn { background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-size: 18px; font-weight: bold; }
         #order-btn:disabled { background: #ccc; }
-        
-        /* 已點餐提示遮罩 */
+
+        /* 送出成功遮罩 */
         #ordered-mask { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; z-index: 999; text-align: center; padding-top: 150px; }
+        
+        /* 重置小按鈕樣式 */
+        .reset-small { color: #ccc; background: none; border: none; font-size: 12px; margin-top: 50px; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
 
+<div id="name-screen">
+    <h2 style="font-size: 28px; margin-bottom: 10px;">歡迎光臨</h2>
+    <p style="color: #666; margin-bottom: 25px;">請輸入姓名開始點餐</p>
+    <input type="text" id="name-input" placeholder="您的姓名" autocomplete="off">
+    <button class="btn-start" onclick="start()">開始點餐</button>
+    <button class="reset-small" onclick="localStorage.clear(); location.reload();">重設系統 (老闆專用)</button>
+</div>
+
 <div id="ordered-mask">
-    <div style="font-size: 30px; margin-bottom: 20px;">📝 訂單已送出成功！</div>
-    <div style="font-size: 20px; color: #ccc;">若需加點請洽服務人員</div>
-    <button onclick="localStorage.removeItem('hasOrdered'); location.reload();" style="margin-top: 50px; background: none; border: 1px solid #555; color: #555; padding: 5px 10px;">(老闆測試用：清除限制)</button>
+    <div style="font-size: 30px; font-weight: bold; margin-bottom: 20px;">✅ 訂單已送出</div>
+    <p style="font-size: 20px;">請稍候，餐點製作中...</p>
+    <button class="reset-small" onclick="localStorage.clear(); location.reload();">清除點餐紀錄並重新開始</button>
 </div>
 
 <div class="header">
-    <div id="table-display" class="table-info">桌號：確認中...</div>
+    <div id="table-display" class="table-info">桌號：讀取中...</div>
     <div id="category-box" class="category-container"></div>
 </div>
 
-<div id="menu-display" class="menu-grid">
-    <div style="grid-column: span 2; text-align: center; padding: 40px;">讀取中...</div>
-</div>
+<div id="menu-display" class="menu-grid"></div>
 
 <div class="footer">
-    <div style="font-size: 22px; font-weight: bold;">總計：$<span id="total-price">0</span></div>
+    <div style="font-size: 20px; font-weight: bold;">總額：$<span id="total-price">0</span></div>
     <button id="order-btn" disabled onclick="submitOrder()">送出訂單</button>
 </div>
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzxR4PDIfLlUPpwCAraPsK7qAbbXMU1uRMNw1fOfMSvau5jbkSdgjQQVx01c9_AvRB6/exec"; 
-    let menuData = [];
-    let cart = {};
-    let activeCat = "";
+    let menuData = [], cart = {}, activeCat = "", userName = "";
     const table = new URLSearchParams(window.location.search).get('table') || "現場";
 
     window.onload = () => {
-        // 檢查是否點過餐
+        // 如果已經送過餐，直接擋住
         if (localStorage.getItem('hasOrdered') === 'true') {
             document.getElementById('ordered-mask').style.display = 'block';
-            return;
         }
-
-        document.getElementById('table-display').innerText = "您的桌號：" + table;
-        fetch(API_URL)
-            .then(res => res.json())
-            .then(data => {
-                menuData = data;
-                const cats = [...new Set(data.map(i => i.category))];
-                activeCat = cats[0];
-                renderTabs(cats);
-                renderMenu();
-            })
-            .catch(err => {
-                // 如果讀不到菜單，通常是 GAS 網址或權限問題
-                document.getElementById('menu-display').innerHTML = '<div style="grid-column: span 2; color: red; text-align:center; padding: 20px;">無法讀取菜單，請檢查 GAS 部署權限是否設為「所有人」。</div>';
-            });
     };
+
+    function start() {
+        userName = document.getElementById('name-input').value.trim();
+        if (!userName) return alert("請輸入姓名");
+        document.getElementById('name-screen').style.display = 'none';
+        document.getElementById('table-display').innerText = `桌號：${table} | 顧客：${userName}`;
+        
+        fetch(API_URL).then(res => res.json()).then(data => {
+            menuData = data;
+            const cats = [...new Set(data.map(i => i.category))];
+            activeCat = cats[0];
+            renderTabs(cats);
+            renderMenu();
+        }).catch(err => alert("讀取菜單失敗，請檢查網路或 GAS 部署權限"));
+    }
 
     function renderTabs(cats) {
         const box = document.getElementById('category-box');
@@ -95,11 +102,11 @@
             const d = document.createElement('div');
             d.className = `cat-tab ${c === activeCat ? 'active' : ''}`;
             d.innerText = c;
-            d.onclick = () => {
-                activeCat = c;
+            d.onclick = () => { 
+                activeCat = c; 
+                renderMenu(); 
                 document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
                 d.classList.add('active');
-                renderMenu();
             };
             box.appendChild(d);
         });
@@ -112,57 +119,80 @@
             const card = document.createElement('div');
             card.className = 'menu-card';
             card.innerHTML = `
-                <div>
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-price">$${item.price}</div>
-                </div>
-                <div class="controls">
-                    <button class="btn-qty" onclick="updateQty('${item.name}', -1)">-</button>
-                    <span class="qty-val" id="q-${item.name}">${cart[item.name] || 0}</span>
-                    <button class="btn-qty" onclick="updateQty('${item.name}', 1)">+</button>
-                </div>
-            `;
+                <div class="item-name">${item.name}</div>
+                <div class="item-price">$${item.price}</div>
+                <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:10px;">
+                    <button class="btn-qty" onclick="updateQty('${item.name}',-1)">-</button>
+                    <span id="q-${item.name}" style="margin:0 15px; font-weight:bold; font-size:22px;">${cart[item.name]||0}</span>
+                    <button class="btn-qty" onclick="updateQty('${item.name}',1)">+</button>
+                </div>`;
             container.appendChild(card);
         });
     }
 
-    function updateQty(name, delta) {
-        cart[name] = (cart[name] || 0) + delta;
-        if (cart[name] < 0) cart[name] = 0;
-        document.getElementById(`q-${name}`).innerText = cart[name];
+    function updateQty(n, d) {
+        cart[n] = (cart[n]||0)+d;
+        if(cart[n]<=0) delete cart[n];
+        const span = document.getElementById(`q-${n}`);
+        if(span) span.innerText = cart[n]||0;
         
-        let total = 0;
-        menuData.forEach(i => { if(cart[i.name]) total += i.price * cart[i.name]; });
-        document.getElementById('total-price').innerText = total;
-        document.getElementById('order-btn').disabled = total === 0;
+        let t = 0;
+        for(let name in cart) {
+            const item = menuData.find(m => m.name === name);
+            if(item) t += item.price * cart[name];
+        }
+        document.getElementById('total-price').innerText = t;
+        document.getElementById('order-btn').disabled = t === 0;
     }
 
     function submitOrder() {
-        if (!confirm("確定要送出訂單嗎？送出後不可修改。")) return;
+    if(!confirm("確定要送出訂單嗎？")) return;
+    const btn = document.getElementById('order-btn');
+    btn.disabled = true;
+    btn.innerText = "傳送中...";
 
-        const btn = document.getElementById('order-btn');
-        btn.disabled = true;
-        btn.innerText = "傳送中...";
-
-        const items = menuData.filter(i => cart[i.name] > 0).map(i => ({
-            name: i.name, count: cart[i.name], category: i.category
-        }));
-
-        fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({ table, items, total: document.getElementById('total-price').innerText })
-        })
-        .then(() => {
-            localStorage.setItem('hasOrdered', 'true');
-            alert("訂單已送出！");
-            location.reload();
-        })
-        .catch(err => {
-            alert("送出失敗，請檢查網路或 GAS 權限。");
-            btn.disabled = false;
-            btn.innerText = "送出訂單";
-        });
+    const items = [];
+    for(let name in cart) {
+        // 從原始菜單資料中找出對應的分類資訊
+        const info = menuData.find(i => i.name === name);
+        if (info) {
+            items.push({
+                name: name, 
+                count: cart[name], 
+                category: info.category // <-- 必須補上這一行，分類才不會變成 undefined
+            });
+        }
     }
+    
+    const totalValue = document.getElementById('total-price').innerText;
+    
+    fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+            table: `${userName} (${table})`, 
+            items: items, 
+            total: totalValue
+        })
+    })
+    .then(res => res.json())
+    .then(result => {
+        if(result.result === "success") {
+            localStorage.setItem('hasOrdered', 'true');
+            // 備份訂單以便老闆看板或未來查詢使用
+            localStorage.setItem('lastOrder', JSON.stringify(items));
+            localStorage.setItem('lastTotal', totalValue);
+            alert("訂單已成功送出！");
+            location.reload();
+        } else {
+            throw new Error(result.message);
+        }
+    })
+    .catch((err) => {
+        alert("送出失敗：" + err.message);
+        btn.disabled = false;
+        btn.innerText = "送出訂單";
+    });
+}
 </script>
 </body>
 </html>
