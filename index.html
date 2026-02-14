@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上點餐系統</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 90px; }
+        .header { background: #fff; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .table-info { padding: 10px 15px; background: #28a745; color: white; font-weight: bold; font-size: 14px; }
+        
+        /* 雙列分類標籤樣式 */
+        .category-container { display: grid; grid-template-columns: repeat(6, 1fr); background: #0093c4; border-bottom: 2px solid #fff; }
+        .cat-tab { padding: 12px 5px; color: white; text-align: center; font-size: 13px; cursor: pointer; border: 0.5px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
+        .cat-tab.active { background: #8bc34a; font-weight: bold; }
+
+        /* 兩欄菜單網格 */
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+        .menu-card { background: white; border-radius: 4px; padding: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: space-between; }
+        .item-name { color: #0076a3; font-weight: bold; font-size: 15px; margin-bottom: 5px; }
+        .item-price { color: #f57c00; font-weight: bold; font-size: 14px; }
+        
+        /* 控制器 */
+        .controls { display: flex; align-items: center; justify-content: flex-end; margin-top: 10px; }
+        .btn-qty { width: 28px; height: 28px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; }
+        .qty-val { margin: 0 10px; font-weight: bold; color: #333; }
+
+        .footer { position: fixed; bottom: 0; width: 100%; background: #fff; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
+        #order-btn { background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        #order-btn:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div id="table-display" class="table-info">桌號：確認中...</div>
+    <div id="category-box" class="category-container">
+        </div>
+</div>
+
+<div id="menu-display" class="menu-grid">
+    <div style="grid-column: span 2; text-align: center; padding: 40px;">讀取菜單中...</div>
+</div>
+
+<div class="footer">
+    <div style="font-size: 18px; font-weight: bold;">總金額：$<span id="total-price">0</span></div>
+    <button id="order-btn" disabled onclick="submitOrder()">送出訂單</button>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzNE4Z7OVIGTLba2sVZdZO0GreKEzpY19ZFlDAs8LFYXBiyvGw1WLE0Fm_C3R47B6E4/exec"; 
+    let menuData = [];
+    let cart = {};
+    let activeCat = "";
+    const table = new URLSearchParams(window.location.search).get('table') || "現場";
+
+    window.onload = () => {
+        document.getElementById('table-display').innerText = "桌號：" + table;
+        fetch(API_URL)
+            .then(res => res.json())
+            .then(data => {
+                menuData = data;
+                const cats = [...new Set(data.map(i => i.category))];
+                activeCat = cats[0];
+                renderTabs(cats);
+                renderMenu();
+            });
+    };
+
+    function renderTabs(cats) {
+        const box = document.getElementById('category-box');
+        box.innerHTML = "";
+        cats.forEach(c => {
+            const d = document.createElement('div');
+            d.className = `cat-tab ${c === activeCat ? 'active' : ''}`;
+            d.innerText = c;
+            d.onclick = () => {
+                activeCat = c;
+                document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+                d.classList.add('active');
+                renderMenu();
+            };
+            box.appendChild(d);
+        });
+    }
+
+    function renderMenu() {
+        const container = document.getElementById('menu-display');
+        container.innerHTML = "";
+        menuData.filter(i => i.category === activeCat).forEach((item, idx) => {
+            const card = document.createElement('div');
+            card.className = 'menu-card';
+            card.innerHTML = `
+                <div>
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">$${item.price}</div>
+                </div>
+                <div class="controls">
+                    <button class="btn-qty" onclick="updateQty('${item.name}', -1)">-</button>
+                    <span class="qty-val" id="q-${item.name}">${cart[item.name] || 0}</span>
+                    <button class="btn-qty" onclick="updateQty('${item.name}', 1)">+</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function updateQty(name, delta) {
+        cart[name] = (cart[name] || 0) + delta;
+        if (cart[name] < 0) cart[name] = 0;
+        document.getElementById(`q-${name}`).innerText = cart[name];
+        
+        let total = 0;
+        menuData.forEach(i => { if(cart[i.name]) total += i.price * cart[i.name]; });
+        document.getElementById('total-price').innerText = total;
+        document.getElementById('order-btn').disabled = total === 0;
+    }
+
+    function submitOrder() {
+        const btn = document.getElementById('order-btn');
+        btn.disabled = true;
+        btn.innerText = "傳送中...";
+
+        const items = menuData.filter(i => cart[i.name] > 0).map(i => ({
+            name: i.name, count: cart[i.name], category: i.category
+        }));
+
+        fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ table, items, total: document.getElementById('total-price').innerText })
+        })
+        .then(() => {
+            alert("訂單已送出！");
+            location.reload();
+        });
+    }
+</script>
+</body>
+</html>
